@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
 
-  // ✅ ADD THIS (CORS FIX)
+  // ✅ CORS (important for browser tools like Hoppscotch)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -16,6 +16,10 @@ export default async function handler(req, res) {
   try {
     const { input } = req.body;
 
+    if (!input) {
+      return res.status(400).json({ error: "Missing input" });
+    }
+
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -24,17 +28,30 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "gpt-4.1-mini",
-        input: `You are a fraud risk analyst. Analyze this scenario and return risk insights:\n\n${input}`
+        input: `You are a fraud risk analyst.
+
+Analyze the scenario and return:
+- Risk level (Low / Medium / High)
+- Reason
+- Recommendation
+
+Scenario:
+${input}`
       })
     });
 
     const data = await response.json();
 
+    // 🔍 Debug log (check in Vercel logs if needed)
+    console.log("OPENAI RESPONSE:", JSON.stringify(data, null, 2));
+
     return res.status(200).json({
-      result: data.output?.[0]?.content?.[0]?.text || "No response"
+      result: data.output_text || "No response"
     });
 
   } catch (error) {
+    console.error("ERROR:", error);
+
     return res.status(500).json({
       error: "API error",
       details: error.message
