@@ -1,14 +1,20 @@
 export default async function handler(req, res) {
+
+  // ✅ ADD THIS (CORS FIX)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
-
     const { input } = req.body;
-
-    if (!input) {
-      return res.status(400).json({ error: "Missing input" });
-    }
 
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -18,33 +24,14 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "gpt-4.1-mini",
-        input: `You are a fraud risk analyst.
-
-Analyze this scenario and return:
-- Risk score (0–100)
-- Risk level (LOW/MEDIUM/HIGH)
-- Estimated exposure
-- Key issues
-
-Scenario:
-${input}`
+        input: `You are a fraud risk analyst. Analyze this scenario and return risk insights:\n\n${input}`
       })
     });
 
     const data = await response.json();
 
-    // 🔥 SAFETY CHECK (important)
-    if (!data.output || !data.output[0]) {
-      return res.status(500).json({
-        error: "Invalid OpenAI response",
-        raw: data
-      });
-    }
-
-    const resultText = data.output[0].content[0].text;
-
     return res.status(200).json({
-      result: resultText
+      result: data.output?.[0]?.content?.[0]?.text || "No response"
     });
 
   } catch (error) {
