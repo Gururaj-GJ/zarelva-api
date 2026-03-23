@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
 
-  // ✅ CORS (important for browser tools like Hoppscotch)
+  // ✅ CORS (important)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
         input: `You are a fraud risk analyst.
 
 Analyze the scenario and return:
-- Risk level (Low / Medium / High)
+- Risk Level (Low / Medium / High)
 - Reason
 - Recommendation
 
@@ -43,10 +43,22 @@ ${input}`
     const data = await response.json();
 
     // 🔍 Debug log (check in Vercel logs if needed)
-    console.log("OPENAI RESPONSE:", JSON.stringify(data, null, 2));
+    console.log("FULL OPENAI RESPONSE:", JSON.stringify(data, null, 2));
+
+    // ✅ Robust parsing (handles all OpenAI formats)
+    let resultText = "No response";
+
+    if (data.output_text) {
+      resultText = data.output_text;
+    } else if (data.output && data.output.length > 0) {
+      const content = data.output[0].content;
+      if (content && content.length > 0) {
+        resultText = content[0].text || JSON.stringify(content[0]);
+      }
+    }
 
     return res.status(200).json({
-      result: data.output_text || "No response"
+      result: resultText
     });
 
   } catch (error) {
