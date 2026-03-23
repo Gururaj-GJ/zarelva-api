@@ -46,7 +46,24 @@ ${input}`
     console.log("FULL OPENAI RESPONSE:", JSON.stringify(data, null, 2));
 
     // ✅ Robust parsing (handles all OpenAI formats)
-    let resultText = "No response";
+    // 🚨 Handle API errors clearly
+if (data.error) {
+  return res.status(500).json({
+    error: data.error.message
+  });
+}
+
+// ✅ Normal parsing
+let resultText = "No response";
+
+if (data.output_text) {
+  resultText = data.output_text;
+} else if (data.output && data.output.length > 0) {
+  const content = data.output[0].content;
+  if (content && content.length > 0) {
+    resultText = content[0].text || JSON.stringify(content[0]);
+  }
+}
 
     if (data.output_text) {
       resultText = data.output_text;
